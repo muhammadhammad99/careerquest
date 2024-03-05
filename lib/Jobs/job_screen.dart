@@ -1,11 +1,12 @@
-import 'package:career_quest/Widgets/job_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:career_quest/Search/search_job.dart';
 import 'package:career_quest/Widgets/bottom_nav_bar.dart';
+import 'package:career_quest/Widgets/job_widget.dart';
 
 import '../Persistent/persistent.dart';
+
 
 class JobScreen extends StatefulWidget {
 
@@ -100,6 +101,14 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    Persistent persistentObject = Persistent();
+    persistentObject.getMyData();
+  }
+
+  @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Container(
@@ -151,16 +160,13 @@ class _JobScreenState extends State<JobScreen> {
                   .snapshots(),
               builder: (context, AsyncSnapshot snapshot)
               {
-                //print('HEHEHEHE ${FirebaseFirestore.instance.collection('jobs').where('recruitment',isEqualTo: true).parameters[5]}');
                 if(snapshot.connectionState == ConnectionState.waiting)
                 {
                   return const Center(child: CircularProgressIndicator(),);
                 }
-
                 else if(snapshot.connectionState == ConnectionState.active)
                 {
-
-                  if(snapshot.data?.docs.isNotEmpty)
+                  if(snapshot.data?.docs.isNotEmpty == true)
                   {
                     return ListView.builder(
                         itemCount: snapshot.data?.docs.length,
@@ -182,8 +188,8 @@ class _JobScreenState extends State<JobScreen> {
                   }
                   else
                   {
-                    return  Center(
-                      child: Text('There is no jobs '),
+                    return const Center(
+                      child: Text('There is no jobs'),
                     );
                   }
                 }

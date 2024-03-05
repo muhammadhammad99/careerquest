@@ -213,7 +213,7 @@ class _UploadJobNowState extends State<UploadJobNow> {
      });
      try
          {
-           await FirebaseFirestore.instance.collection('jobs ').doc(jobId).set({
+           await FirebaseFirestore.instance.collection('jobs').doc(jobId).set({
              'jobId': jobId,
              'uploadedBy': _uid,
              'email': user.email,
@@ -264,26 +264,7 @@ class _UploadJobNowState extends State<UploadJobNow> {
        }
    }
 
-   void getMyData() async {
-   final DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid)
-       .get();
-   setState(() {
-     name = userDoc.get('name');
-     userImage = userDoc.get('userImage');
-     location = userDoc.get('location');
-
-
-   });
-   }
-
-   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    getMyData();
-  }
-
-  @override
+ @override
   Widget build(BuildContext context) {
    Size size = MediaQuery.of(context).size;
     return Container(
