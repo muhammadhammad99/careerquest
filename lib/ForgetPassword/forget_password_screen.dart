@@ -1,9 +1,6 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:career_quest/LoginPage/login_screen.dart';
 import 'package:career_quest/Services/global_variables.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -19,7 +16,6 @@ class _ForgetPasswordState extends State<ForgetPassword> with TickerProviderStat
   late Animation<double> _animation;
   late AnimationController _animationController;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final TextEditingController _forgetPassTextController = TextEditingController(text: '');
 
@@ -53,11 +49,7 @@ class _ForgetPasswordState extends State<ForgetPassword> with TickerProviderStat
   {
     try
     {
-      await _auth.sendPasswordResetEmail(
 
-        email: _forgetPassTextController.text,
-
-      );
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => login()));
     }
     catch(error)

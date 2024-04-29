@@ -1,23 +1,29 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'package:career_quest/Services/api.dart';
 import 'package:flutter/material.dart';
 import 'package:career_quest/Widgets/job_widget.dart';
 
 import '../Jobs/job_screen.dart';
-import '../Widgets/job_widget.dart';
 
 class SearchScreen extends StatefulWidget {
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-
   final TextEditingController _searchQueryController = TextEditingController();
-  String searchQuery = 'Search query';
+  String? searchQuery = 'Search query';
+  Future<List<JobWidget>>? _jobs;
 
-  Widget _buildSearchField()
-  {
+  @override
+  void initState() {
+    super.initState();
+    _jobs = ApiManager.getListJobs(null, null);
+  }
+
+  Widget _buildSearchField() {
     return TextField(
       controller: _searchQueryController,
       autocorrect: true,
@@ -31,115 +37,102 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  List<Widget> _buildActions()
-  {
+  List<Widget> _buildActions() {
     return <Widget>[
       IconButton(
         icon: const Icon(Icons.clear),
-        onPressed: (){
+        onPressed: () {
           _clearSearchQuery();
         },
       ),
     ];
   }
 
-  void _clearSearchQuery()
-  {
-    setState((){
+  void _clearSearchQuery() {
+    setState(() {
       _searchQueryController.clear();
-      updateSearchQuery('');
+      updateSearchQuery(null);
     });
   }
 
-  void updateSearchQuery(String newQuery)
-  {
-    setState((){
+  void updateSearchQuery(String? newQuery) {
+    setState(() {
       searchQuery = newQuery;
-      print(searchQuery);
+      _jobs = ApiManager.getListJobs(searchQuery, null);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Colors.deepOrange.shade300, Colors.blueAccent],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        stops: const [0.2, 0.9],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.deepOrange.shade300, Colors.blueAccent],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          stops: const [0.2, 0.9],
+        ),
       ),
-    ),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.deepOrange.shade300, Colors.blueAccent],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                stops: const [0.2, 0.9],
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.deepOrange.shade300, Colors.blueAccent],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.2, 0.9],
+                ),
               ),
             ),
+            leading: IconButton(
+              onPressed: () {
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (context) => JobScreen()));
+              },
+              icon: const Icon(Icons.arrow_back),
+            ),
+            title: _buildSearchField(),
+            actions: _buildActions(),
           ),
-          leading: IconButton(
-            onPressed: (){
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => JobScreen()));
+          body: FutureBuilder<List<JobWidget>>(
+            future: _jobs,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final objects = snapshot.data!;
+                if (objects.isEmpty) {
+                  return const Center(
+                    child: Text('No Jobs Found!'),
+                  );
+                } else {
+                  return ListView.builder(
+                    itemCount: objects.length,
+                    itemBuilder: (context, index) {
+                      final object = objects[index];
+                      return JobWidget(
+                        id: object.id,
+                        title: object.title,
+                        description: object.description,
+                        uploadedBy: object.uploadedBy,
+                        recruitment: object.recruitment,
+                        location: object.location,
+                        category: object.category,
+                      );
+                    },
+                  );
+                }
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}'),
+                );
+              }
+
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             },
-            icon: const Icon(Icons.arrow_back),
-          ),
-          title: _buildSearchField(),
-          actions: _buildActions(),
-        ),
-        body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('jobs')
-              .where('jobTitle', isGreaterThanOrEqualTo: searchQuery)
-              .where('recruitment', isEqualTo: true)
-              .snapshots(),
-          builder: (context, AsyncSnapshot snapshot)
-          {
-            if(snapshot.connectionState == ConnectionState.waiting)
-            {
-              return const Center(child: CircularProgressIndicator(),);
-            }
-            else if (snapshot.connectionState == ConnectionState.active)
-            {
-              if(snapshot.data?.docs.isNotEmpty == true)
-              {
-                return ListView.builder(
-                  itemCount: snapshot.data?.docs.length,
-                  itemBuilder: (BuildContext context, int index){
-                    return JobWidget(
-                      jobTitle: snapshot.data?.docs[index]['jobTitle'],
-                      jobDescription: snapshot.data?.docs[index]['jobDescription'],
-                      jobId: snapshot.data?.docs[index]['jobId'],
-                      uploadedby: snapshot.data?.docs[index]['uploadedBy'],
-                      userImage: snapshot.data?.docs[index]['userImage'],
-                      name: snapshot.data?.docs[index]['name'],
-                      recruitment: snapshot.data?.docs[index]['recruitment'],
-                      email: snapshot.data?.docs[index]['email'],
-                      location: snapshot.data?.docs[index]['location'],
-                    );
-                  },
-                );
-              }
-              else
-              {
-                return const Center(
-                  child: Text('There is no jobs'),
-                );
-              }
-            }
-            return const Center(
-              child: Text(
-                'Something went wrong',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30.0),
-              ),
-            );
-          },
-        ),
-      ),
+          )),
     );
   }
 }

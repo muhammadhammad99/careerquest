@@ -1,79 +1,66 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:career_quest/Persistent/persistent.dart';
+import 'package:career_quest/Services/api.dart';
+import 'package:career_quest/Services/global_variables.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttericon/font_awesome_icons.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../Widgets/bottom_nav_bar.dart';
-import '../user_state.dart';
 
 class ProfileScreen extends StatefulWidget {
-
   final String userID;
 
-  const ProfileScreen({required this.userID});
-
+  const ProfileScreen({super.key, required this.userID});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   String? name;
   String email = '';
   String phoneNumber = '';
-  String imageUrl = '';
-  String joinedAt = '';
+  String? pic;
+  String location = "";
   bool _isLoading = false;
   bool _isSameUser = false;
 
-  void getUserData() async
-  {
-    try{
+  void getUserData() async {
+    try {
       _isLoading = true;
-      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userID)
-          .get();
-      if(userDoc == null){
-        return;
-      }
-      else
-        {
-          setState(() {
-            name = userDoc.get('name');
-            email = userDoc.get('email');
-            phoneNumber = userDoc.get('phoneNumber');
-            imageUrl = userDoc.get('userImage');
-            Timestamp joinedAtTimeStamp = userDoc.get('createdAt');
-            var joinedDate = joinedAtTimeStamp.toDate();
-            joinedAt = '${joinedDate.year} - ${joinedDate.month} - ${joinedDate.day}';
-          });
-          User? user = _auth.currentUser;
-          final _uid = user!.uid;
-          setState(() {
-            _isSameUser = _uid == widget.userID;
-          });
-        }
-    }catch(error){} finally{
+      ApiManager.getUserDetail(widget.userID).then((user) {
+        setState(() {
+          name = user.name;
+          email = user.email;
+          phoneNumber = user.phoneNumber;
+          pic = user.pic;
+          // Timestamp joinedAtTimeStamp = user.get('createdAt');
+          // var joinedDate = joinedAtTimeStamp.toDate();
+          // joinedAt = '${joinedDate.year} - ${joinedDate.month} - ${joinedDate.day}';
+        });
+      }).catchError((err) {
+        throw Exception(err.toString());
+      });
+
+      setState(() {
+        _isSameUser = uid == widget.userID;
+      });
+    } catch (error) {
+      throw Exception(error.toString());
+    } finally {
       _isLoading = false;
     }
-
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    Persistent persistent = Persistent();
+    persistent.getMyData();
     getUserData();
   }
 
-  Widget userInfo({required IconData icon, required String content})
-  {
+  Widget userInfo({required IconData icon, required String content}) {
     return Row(
       children: [
         Icon(
@@ -91,11 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _contactBy
-      ({
-    required Color color, required Function fct, required IconData icon
-  })
-  {
+  Widget _contactBy(
+      {required Color color, required Function fct, required IconData icon}) {
     return CircleAvatar(
       backgroundColor: color,
       radius: 25,
@@ -107,8 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon,
             color: color,
           ),
-          onPressed: ()
-          {
+          onPressed: () {
             fct();
           },
         ),
@@ -116,29 +99,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _openWhatsAppChat() async
-  {
+  void _openWhatsAppChat() async {
     var url = 'https://wa.me/$phoneNumber?text=HelloWorld';
     launchUrlString(url);
   }
 
-  void _mailTo() async
-  {
+  void _mailTo() async {
     final Uri params = Uri(
       scheme: 'mailto',
       path: email,
-      query: 'subject=Write subject here, Please&body=Hello, please write details here',
+      query:
+          'subject=Write subject here, Please&body=Hello, please write details here',
     );
     final url = params.toString();
     launchUrlString(url);
   }
 
-  void _callPhoneNumber() async
-  {
+  void _callPhoneNumber() async {
     var url = 'tel://$phoneNumber';
     launchUrlString(url);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -153,204 +133,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       child: Scaffold(
-        bottomNavigationBar: BottomNavigationBarForApp(indexNum: 3,),
+        bottomNavigationBar: const BottomNavigationBarForApp(
+          indexNum: 3,
+        ),
         backgroundColor: Colors.transparent,
-          body: Center(
-              child: _isLoading
-                  ?
-              Center(child: CircularProgressIndicator(),)
-                  :
-                  SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 0),
-                      child: Stack(
-                        children: [
-                          Card(
-                              color: Colors.white10,
-                              margin: EdgeInsets.all(30),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 100,
-                                    ),
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        name == null
-                                            ?
-                                        'Name here'
-                                            :
-                                        name!,
-                                        style: const TextStyle(color: Colors.white, fontSize: 24.0),
-                                      ),
-                                    ),
-                                    SizedBox(height: 15,
-                                    ),
-                                    Divider(
-                                      thickness: 1,
-                                      color: Colors.white,
-                                    ),
-                                    SizedBox(
-                                      height: 30,
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(10.0),
-                                      child: Text(
-                                        'Account Information :',
-                                        style: TextStyle(color: Colors.white54, fontSize: 22.0),
-                                      ),
-                                    ),
-                                    SizedBox(height: 15,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 10),
-                                      child: userInfo(icon: Icons.email, content: email),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 10),
-                                      child: userInfo(icon: Icons.phone, content: phoneNumber),
-                                    ),
-                                    const SizedBox(
-                                      height: 15,
-                                    ),
-                                    const Divider(
-                                      thickness: 1,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(
-                                      height: 35,
-                                    ),
-                                    _isSameUser
-                                         ?
-                                    Container()
-                                         :
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                          children: [
-                                            _contactBy(
-                                                color: Colors.green,
-                                                fct: ()
-                                                {
-                                                  _openWhatsAppChat();
-                                                },
-                                              icon: FontAwesome.whatsapp,
-                                            ),
-                                            _contactBy(
-                                              color: Colors.red,
-                                              fct: ()
-                                              {
-                                                _mailTo();
-                                              },
-                                              icon: Icons.mail_outline,
-                                            ),
-                                            _contactBy(
-                                              color: Colors.purple,
-                                              fct: ()
-                                              {
-                                                _callPhoneNumber();
-                                              },
-                                              icon: Icons.call,
-                                            ),
-                                          ],
-                                        ),
-                                    const SizedBox(
-                                      height: 25,
-                                    ),
-                                    const Divider(
-                                      thickness: 1,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(
-                                      height: 25,
-                                    ),
-                                    _isSameUser
-                                        ?
-                                    Container()
-                                        :
-                                        Center(
-                                          child: Padding(
-                                            padding: EdgeInsets.only(bottom: 30),
-                                            child: MaterialButton(
-                                              onPressed: (){
-                                                _auth.signOut();
-                                                Navigator.push(context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) => UserState(),));
-
-                                              },
-                                              color: Colors.black,
-                                              elevation: 8,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(13),
-                                              ),
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(vertical: 14),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      'Logout',
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontFamily: 'Signatra',
-                                                        fontSize: 28,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 8,
-                                                    ),
-                                                    Icon(
-                                                      Icons.logout,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                  ],
+        body: Center(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 0),
+                    child: Stack(
+                      children: [
+                        Card(
+                          color: Colors.white10,
+                          margin: const EdgeInsets.all(30),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 100),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    name == null ? 'Name here' : name!,
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 24.0),
+                                  ),
                                 ),
+                                const SizedBox(height: 15),
+                                const Divider(
+                                  thickness: 1,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(
+                                  height: 30,
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.all(10.0),
+                                  child: Text(
+                                    'Account Information :',
+                                    style: TextStyle(
+                                        color: Colors.white54, fontSize: 22.0),
+                                  ),
+                                ),
+                                const SizedBox(height: 15),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 10),
+                                  child: userInfo(
+                                      icon: Icons.email, content: email),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 10),
+                                  child: userInfo(
+                                      icon: Icons.phone, content: phoneNumber),
+                                ),
+                                const SizedBox(
+                                  height: 15,
+                                ),
+                                const Divider(
+                                  thickness: 1,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(
+                                  height: 35,
+                                ),
+                                _isSameUser
+                                    ? Container()
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          _contactBy(
+                                            color: Colors.green,
+                                            fct: () {
+                                              _openWhatsAppChat();
+                                            },
+                                            icon: FontAwesome.whatsapp,
+                                          ),
+                                          _contactBy(
+                                            color: Colors.red,
+                                            fct: () {
+                                              _mailTo();
+                                            },
+                                            icon: Icons.mail_outline,
+                                          ),
+                                          _contactBy(
+                                            color: Colors.purple,
+                                            fct: () {
+                                              _callPhoneNumber();
+                                            },
+                                            icon: Icons.call,
+                                          ),
+                                        ],
+                                      ),
+                                const SizedBox(
+                                  height: 25,
+                                ),
+                                const Divider(
+                                  thickness: 1,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(
+                                  height: 25,
+                                ),
+                              ],
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                  width: size.width * 0.26,
-                                  height: size.width * 0.26,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        width: 8,
-                                        color: Theme.of(context).scaffoldBackgroundColor,
-                                      ),
-                                      image: DecorationImage(
-                                        image: NetworkImage(
-                                            imageUrl == null
-                                                ?
-                                            'https://cdn.icon-icons.com/icons2/2643/PNG/512/male_boy_person_people_avatar_icon_159358.png'
-                                                :
-                                            imageUrl,
-                                        ),
-                                        fit: BoxFit.fill,
-                                      )
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: size.width * 0.26,
+                              height: size.width * 0.26,
+                              decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    width: 8,
+                                    color: Theme.of(context)
+                                        .scaffoldBackgroundColor,
                                   ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                                  image: DecorationImage(
+                                    image: NetworkImage(
+                                      pic ??
+                                          'https://cdn.icon-icons.com/icons2/2643/PNG/512/male_boy_person_people_avatar_icon_159358.png',
+                                    ),
+                                    fit: BoxFit.fill,
+                                  )),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-          ),
+                ),
+        ),
       ),
     );
   }

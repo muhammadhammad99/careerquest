@@ -1,23 +1,30 @@
+import 'dart:async';
+import 'package:career_quest/LoginPage/login_screen.dart';
+import 'package:career_quest/Models/user_model.dart';
+import 'package:career_quest/Services/api.dart';
 import 'package:career_quest/Widgets/bottom_nav_bar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../Widgets/all_companies_widget.dart';
 
 class AllWorkersScreen extends StatefulWidget {
-
-
   @override
   State<AllWorkersScreen> createState() => _AllWorkersScreenState();
 }
 
 class _AllWorkersScreenState extends State<AllWorkersScreen> {
-
   final TextEditingController _searchQueryController = TextEditingController();
   String searchQuery = 'Search query';
+  Future<List<UserModel>>? _users;
 
-  Widget _buildSearchField()
-  {
+  @override
+  void initState() {
+    super.initState();
+    _users = ApiManager.getUserByName(null);
+    print(_users);
+  }
+
+  Widget _buildSearchField() {
     return TextField(
       controller: _searchQueryController,
       autocorrect: true,
@@ -31,31 +38,30 @@ class _AllWorkersScreenState extends State<AllWorkersScreen> {
     );
   }
 
-  List<Widget> _buildActions()
-  {
+  List<Widget> _buildActions() {
     return <Widget>[
       IconButton(
         icon: const Icon(Icons.clear),
-        onPressed: (){
+        onPressed: () {
           _clearSearchQuery();
         },
       ),
     ];
   }
 
-  void _clearSearchQuery()
-  {
-    setState((){
+  void _clearSearchQuery() {
+    setState(() {
       _searchQueryController.clear();
       updateSearchQuery('');
     });
   }
 
-  void updateSearchQuery(String newQuery)
-  {
-    setState((){
+  void updateSearchQuery(String newQuery) {
+    setState(() {
       searchQuery = newQuery;
       print(searchQuery);
+
+      _users = ApiManager.getUserByName(searchQuery);
     });
   }
 
@@ -71,7 +77,9 @@ class _AllWorkersScreenState extends State<AllWorkersScreen> {
         ),
       ),
       child: Scaffold(
-        bottomNavigationBar: BottomNavigationBarForApp(indexNum: 1,),
+        bottomNavigationBar: BottomNavigationBarForApp(
+          indexNum: 1,
+        ),
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           flexibleSpace: Container(
@@ -88,48 +96,37 @@ class _AllWorkersScreenState extends State<AllWorkersScreen> {
           title: _buildSearchField(),
           actions: _buildActions(),
         ),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .where('name', isGreaterThanOrEqualTo: searchQuery)
-              .snapshots(),
-          builder: (context, AsyncSnapshot snapshot)
-          {
-            if(snapshot.connectionState == ConnectionState.waiting)
-              {
-                return Center(child: CircularProgressIndicator(),);
-              }
-            else if(snapshot.connectionState == ConnectionState.active)
-            {
-              if(snapshot.data!.docs.isNotEmpty){
+        body: FutureBuilder(
+            future: _users,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final objects = snapshot.data!;
                 return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (BuildContext context , int index){
-                      return AllWorkersWidget(
-                        userID: snapshot.data!.docs[index]['id'],
-                        userName: snapshot.data!.docs[index]['name'],
-                        userEmail: snapshot.data!.docs[index]['email'],
-                        phoneNumber: snapshot.data!.docs[index]['phoneNumber'],
-                        userImageUrl: snapshot.data!.docs[index]['userImage'],
-                      );
-                    }
-                );
-              }
-              else
-                {
+                  itemCount: objects.length,
+                  itemBuilder: (context, index) {
+                  final object = objects[index];
+                  return AllWorkersWidget(
+                      userID: object.id,
+                      userName: object.name,
+                      userEmail: object.email,
+                      phoneNumber: object.phoneNumber,
+                      userImageUrl: object.pic);
+                });
+              } else if (snapshot.hasError) {
+                if (snapshot.error.toString().contains("Token has expired")) {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (context) => login()));
+                } else {
                   return Center(
-                    child: Text('There is no users'),
+                    child: Text('${snapshot.error}'),
                   );
                 }
-            }
-            return const Center(
-              child: Text(
-                'Something went wrong',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
-              ),
-            );
-          }
-        ),
+              }
+
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }),
       ),
     );
   }

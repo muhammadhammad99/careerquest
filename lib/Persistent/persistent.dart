@@ -1,9 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:career_quest/Services/api.dart';
 import '../Services/global_variables.dart';
 
-class Persistent{
+class Persistent {
   static List<String> jobCategoryList = [
     'Architecture and Construction',
     'Education and Training',
@@ -16,12 +14,13 @@ class Persistent{
     'Accounting',
   ];
 
-  void getMyData() async {
-    final DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid)
-        .get();
-
-    name = userDoc.get('name');
-    userImage = userDoc.get('userImage');
-    location = userDoc.get('location');
+  void getMyData() {
+    ApiManager.getUser().then((value) {
+      uid = value.id.toString();
+      username = value.name.toString();
+      userEmail = value.email.toString();
+      userLocation = value.location.toString();
+      userImage = value.pic.toString();
+    });
   }
 }

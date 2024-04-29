@@ -1,34 +1,26 @@
 import 'package:career_quest/Jobs/job_details.dart';
+import 'package:career_quest/Services/api.dart';
 import 'package:career_quest/Services/global_methods.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-
 
 class JobWidget extends StatefulWidget {
-
-  final String jobTitle;
-  final String jobDescription;
-  final String jobId;
-  final String uploadedby;
-  final String userImage;
-  final String name;
+  final String id;
+  final String title;
+  final String description;
+  final String uploadedBy;
   final bool recruitment;
-  final String email;
   final String location;
+  final String category;
 
   const JobWidget({
-    required this.jobTitle,
-    required this.jobDescription,
-    required this.jobId,
-    required this.uploadedby,
-    required this.userImage,
-    required this.name,
+    super.key,
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.uploadedBy,
     required this.recruitment,
-    required this.email,
     required this.location,
-
+    required this.category,
   });
 
   @override
@@ -36,41 +28,29 @@ class JobWidget extends StatefulWidget {
 }
 
 class _JobWidgetState extends State<JobWidget> {
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  _deleteDialog()
-  {
-    User? user = _auth.currentUser;
-    final _uid = user!.uid;
+  _deleteDialog() {
+    String? uid;
+    ApiManager.getUser().then((value) {
+      uid = value.id;
+    });
     showDialog(
         context: context,
-        builder: (ctx)
-        {
+        builder: (ctx) {
           return AlertDialog(
             actions: [
               TextButton(
-                onPressed: () async{
-                  try{
-                    if(widget.uploadedby == _uid){
-                      await FirebaseFirestore.instance.collection('jobs')
-                          .doc(widget.jobId)
-                          .delete();
-                      await Fluttertoast.showToast(
-                        msg: 'Job has been deleted',
-                        toastLength: Toast.LENGTH_LONG,
-                        backgroundColor: Colors.grey,
-                        fontSize: 18.0,
-                      );
-                      Navigator.canPop(ctx) ? Navigator.pop(ctx) : null;
-                    }
-                    else{
-                      GlobalMethod.showErrorDialog(error: 'You cannot perform this action', ctx: ctx);
-                    }
-                  }
-                  catch (error)
-                  {
-                    GlobalMethod.showErrorDialog(error: 'This task cannot be deleted '+ error.toString(),  ctx: ctx);
+                onPressed: () {
+                  if (widget.uploadedBy == uid) {
+                    Future<String> res = ApiManager.deleteJob(widget.id);
+                    res.then((data) {
+                      if (data.contains('Job Deleted!')) {
+                        Navigator.canPop(ctx) ? Navigator.pop(ctx) : null;
+                      } else {
+                        GlobalMethod.showErrorDialog(error: data, ctx: ctx);
+                      }
+                    }).catchError((err) {
+                      GlobalMethod.showErrorDialog(error: err.toString(), ctx: ctx);
+                    });
                   }
                 },
                 child: const Row(
@@ -79,7 +59,6 @@ class _JobWidgetState extends State<JobWidget> {
                     Icon(
                       Icons.delete,
                       color: Colors.red,
-
                     ),
                     Text(
                       'Delete',
@@ -90,9 +69,7 @@ class _JobWidgetState extends State<JobWidget> {
               ),
             ],
           );
-        }
-    );
-
+        });
   }
 
   @override
@@ -102,41 +79,48 @@ class _JobWidgetState extends State<JobWidget> {
       elevation: 8,
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Dismissible(
-        key: ObjectKey(widget.jobId),
+        key: ObjectKey(widget),
         background: Container(
           color: Colors.red,
-          padding: EdgeInsets.only(left: 16),
-          child: Align(alignment: Alignment.centerLeft, child: Icon(Icons.delete, color: Colors.white,)),
+          padding: const EdgeInsets.only(left: 16),
+          child: const Align(
+              alignment: Alignment.centerLeft,
+              child: Icon(
+                Icons.delete,
+                color: Colors.white,
+              )),
         ),
         direction: DismissDirection.startToEnd,
-        confirmDismiss: (direction){
-          final result =
-          _deleteDialog();
+        confirmDismiss: (direction) {
+          final result = _deleteDialog();
           return result;
         },
         child: ListTile(
-          onTap: (){
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => JobDetailsScreen(
-              uploadedBy: widget.uploadedby,
-              jobID: widget.jobId,
-            )));
+          onTap: () {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobDetailsScreen(
+                          uploadedBy: widget.uploadedBy,
+                          jobID: widget.id,
+                        )));
           },
-          onLongPress: (){
-           // _deleteDialog();
+          onLongPress: () {
+            _deleteDialog();
           },
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          leading: Container(
-            padding: const EdgeInsets.only(right: 12),
-            decoration: const BoxDecoration(
-              border: Border(
-                right: BorderSide(width: 1),
-              ),
-            ),
-            child: Image.network(widget.userImage),
-
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          // leading: Container(
+          //   padding: const EdgeInsets.only(right: 12),
+          //   decoration: const BoxDecoration(
+          //     border: Border(
+          //       right: BorderSide(width: 1),
+          //     ),
+          //   ),
+          //   child: Image.network(widget),
+          // ),
           title: Text(
-            widget.jobTitle,
+            widget.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -150,7 +134,7 @@ class _JobWidgetState extends State<JobWidget> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
-                widget.name,
+                widget.category,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -159,9 +143,11 @@ class _JobWidgetState extends State<JobWidget> {
                   fontSize: 13,
                 ),
               ),
-              const SizedBox(height: 8,),
+              const SizedBox(
+                height: 2,
+              ),
               Text(
-                widget.jobDescription,
+                widget.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(

@@ -1,34 +1,29 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:career_quest/ForgetPassword/forget_password_screen.dart';
+import 'package:career_quest/Jobs/job_screen.dart';
+import 'package:career_quest/Services/api.dart';
 import 'package:career_quest/Services/global_methods.dart';
 import 'package:career_quest/Services/global_variables.dart';
 import 'package:career_quest/SignupPage/signup_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class login extends StatefulWidget {
-
-
   @override
   State<login> createState() => _loginState();
 }
 
-class _loginState extends State<login> with TickerProviderStateMixin{
-
+class _loginState extends State<login> with TickerProviderStateMixin {
   late Animation<double> _animation;
   late AnimationController _animationController;
 
-  final TextEditingController _emailTextController = TextEditingController(text: '');
-  final TextEditingController _passTextController = TextEditingController(text: '');
-
+  final TextEditingController _emailTextController =
+  TextEditingController(text: '');
+  final TextEditingController _passTextController =
+  TextEditingController(text: '');
 
   final FocusNode _passFocusNode = FocusNode();
-  bool _isLoading = false;
   bool _obscureText = true;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final _loginFormkey = GlobalKey<FormState>();
 
   @override
@@ -42,54 +37,24 @@ class _loginState extends State<login> with TickerProviderStateMixin{
 
   @override
   void initState() {
-    _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 20));
-    _animation = CurvedAnimation(parent: _animationController, curve: Curves.linear)
-    ..addListener(() {
-      setState(() {
-
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 20));
+    _animation =
+    CurvedAnimation(parent: _animationController, curve: Curves.linear)
+      ..addListener(() {
+        setState(() {});
+      })
+      ..addStatusListener((animationstatus) {
+        if (animationstatus == AnimationStatus.completed) {
+          _animationController.reset();
+          _animationController.forward();
+        }
       });
-    })
-    ..addStatusListener((animationstatus) {
-      if(animationstatus == AnimationStatus.completed){
-      _animationController.reset();
-      _animationController.forward();
-      }
-    });
     _animationController.forward();
 
     super.initState();
   }
 
-
-  void _submitFormOnLogin() async
-  {
-    final isValid = _loginFormkey.currentState!.validate();
-    if(isValid)
-      {
-        setState(() {
-          _isLoading = true;
-
-        });
-        try{
-          await _auth.signInWithEmailAndPassword(
-            email: _emailTextController.text.trim().toLowerCase(),
-            password: _passTextController.text.trim(),
-          );
-          Navigator.canPop(context) ? Navigator.pop(context) : null;
-        }
-        catch(error){
-          setState(() {
-            _isLoading = false;
-          });
-          GlobalMethod.showErrorDialog(error: error.toString(), ctx: context);
-          print('error occurred $error');
-        }
-      }
-    setState(() {
-      _isLoading = false;
-    });
-
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,25 +83,25 @@ class _loginState extends State<login> with TickerProviderStateMixin{
                     padding: const EdgeInsets.only(left: 80, right: 80),
                     child: Image.asset('assets/images/login.png'),
                   ),
-                  const SizedBox(height: 15, ),
+                  const SizedBox(
+                    height: 15,
+                  ),
                   Form(
                     key: _loginFormkey,
                     child: Column(
                       children: [
                         TextFormField(
                           textInputAction: TextInputAction.next,
-                          onEditingComplete: () => FocusScope.of(context).requestFocus(_passFocusNode),
+                          onEditingComplete: () => FocusScope.of(context)
+                              .requestFocus(_passFocusNode),
                           keyboardType: TextInputType.emailAddress,
                           controller: _emailTextController,
-                          validator: (value){
-                            if(value!.isEmpty || !value.contains('@'))
-                              {
-                                return 'Please enter a valid Email address';
-                              }
-                            else
-                              {
-                                return null;
-                              }
+                          validator: (value) {
+                            if (value!.isEmpty || !value.contains('@')) {
+                              return 'Please enter a valid Email address';
+                            } else {
+                              return null;
+                            }
                           },
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
@@ -153,36 +118,33 @@ class _loginState extends State<login> with TickerProviderStateMixin{
                             ),
                           ),
                         ),
-                        const SizedBox(height: 5,),
+                        const SizedBox(
+                          height: 5,
+                        ),
                         TextFormField(
                           textInputAction: TextInputAction.next,
                           focusNode: _passFocusNode,
                           keyboardType: TextInputType.visiblePassword,
-                          controller:  _passTextController,
+                          controller: _passTextController,
                           obscureText: !_obscureText, //change it dynamically
-                          validator: (value)
-                          {
-                            if(value!.isEmpty || value.length < 7)
-                              {
-                                return 'Please enter a valid Password';
-                              }
-                            else
-                            {
+                          validator: (value) {
+                            if (value!.isEmpty || value.length < 7) {
+                              return 'Please enter a valid Password';
+                            } else {
                               return null;
                             }
                           },
                           style: const TextStyle(color: Colors.white),
-                          decoration:  InputDecoration(
+                          decoration: InputDecoration(
                             suffixIcon: GestureDetector(
-                              onTap: ()
-                              {
+                              onTap: () {
                                 setState(() {
                                   _obscureText = !_obscureText;
                                 });
                               },
                               child: Icon(
                                 _obscureText
-                                ? Icons.visibility
+                                    ? Icons.visibility
                                     : Icons.visibility_off,
                                 color: Colors.white,
                               ),
@@ -200,14 +162,17 @@ class _loginState extends State<login> with TickerProviderStateMixin{
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15,),
+                        const SizedBox(
+                          height: 15,
+                        ),
                         Align(
                           alignment: Alignment.bottomRight,
                           child: TextButton(
-                            onPressed: ()
-                            {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => ForgetPassword()));
-
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ForgetPassword()));
                             },
                             child: const Text(
                               'Forget Password',
@@ -217,11 +182,48 @@ class _loginState extends State<login> with TickerProviderStateMixin{
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
-                            ),
                           ),
-                        const SizedBox(height: 10,),
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
                         MaterialButton(
-                          onPressed: _submitFormOnLogin,
+                          onPressed: () {
+                            if (_loginFormkey.currentState!.validate()) {
+                              var data = {
+                                'email': _emailTextController.text
+                                    .trim()
+                                    .toLowerCase(),
+                                'password': _passTextController.text,
+                              };
+                              Future<dynamic> res = ApiManager.login(data);
+                              res.then((data) {
+                                try {
+                                  if (data?.containsKey('error')) {
+                                    GlobalMethod.showErrorDialog(
+                                        error: data['error'].toString(),
+                                        ctx: context);
+                                  } else {
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => JobScreen()));
+                                  }
+                                } catch (e) {
+                                  print(e.toString());
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => JobScreen()));
+                                }
+                              }).catchError((error) {
+                                GlobalMethod.showErrorDialog(
+                                    error: error.toString(),
+                                    ctx: context);
+                                print('Error occurred: $error');
+                              });
+                            }
+                          },
                           color: Colors.cyan,
                           elevation: 8,
                           shape: RoundedRectangleBorder(
@@ -244,32 +246,35 @@ class _loginState extends State<login> with TickerProviderStateMixin{
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40, ),
+                        const SizedBox(
+                          height: 40,
+                        ),
                         Center(
                           child: RichText(
-                            text: TextSpan(
-                              children: [
-                                const TextSpan(
-                                  text: 'Do not have an account?',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                            text: TextSpan(children: [
+                              const TextSpan(
+                                text: 'Do not have an account?',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                                const TextSpan(text: '    '),
-                                TextSpan(
-                                  recognizer: TapGestureRecognizer()
-                                      ..onTap = () => Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp())),
-                                  text: 'SignUp',
-                                  style: const TextStyle(
-                                   color: Colors.cyan,
-                                   fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                              ),
+                              const TextSpan(text: '    '),
+                              TextSpan(
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => SignUp())),
+                                text: 'SignUp',
+                                style: const TextStyle(
+                                  color: Colors.cyan,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                              ]
-                            ),
+                              ),
+                            ]),
                           ),
                         ),
                       ],
